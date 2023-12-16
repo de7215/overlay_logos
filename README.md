@@ -11,7 +11,7 @@ Before you can use this tool, make sure you have the following installed:
 You can install OpenCV using pip:
 
 ```bash
-pip install opencv-python-headless -i https://pypi.org/simple 
+pip install opencv-python-headless imageio imageio[ffmpeg] -i https://pypi.org/simple 
 ```
 ## Usage
 ### Running the Script

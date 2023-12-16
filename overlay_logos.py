@@ -4,6 +4,7 @@ import os
 from typing import Tuple
 
 import cv2
+import imageio
 
 
 def load_and_resize_logo(logo_path: str, frame_width: int, frame_height: int, scale_factor: int) -> Tuple[
@@ -49,7 +50,7 @@ def load_and_resize_logo(logo_path: str, frame_width: int, frame_height: int, sc
 
 
 def process_video(video_path: str, logo1: cv2.Mat, logo1_width: int, logo1_height: int, logo2: cv2.Mat,
-                  logo2_width: int, logo2_height: int, output: cv2.VideoWriter, frame_width: int, frame_height: int):
+                  logo2_width: int, logo2_height: int, writer, frame_width: int, frame_height: int):
     """
     Process video frames to overlay logos.
 
@@ -75,7 +76,7 @@ def process_video(video_path: str, logo1: cv2.Mat, logo1_width: int, logo1_heigh
         overlay_y2 = frame_height // 2 - logo2_height // 2
         frame[overlay_y2:overlay_y2 + logo2_height, overlay_x2:overlay_x2 + logo2_width] = logo2
 
-        output.write(frame)
+        writer.append_data(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))  # Convert frame to RGB before writing
 
     video.release()
 
@@ -102,7 +103,8 @@ def overlay_logos(background: str, left_logo: str, right_logo: str, output_path:
 
     frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    video.release()  # Release the video file as it's no longer needed
+    fps = video.get(cv2.CAP_PROP_FPS)
+    video.release()
 
     logo1, logo1_width, logo1_height = load_and_resize_logo(left_logo, frame_width, frame_height, scale_factor)
     logo2, logo2_width, logo2_height = load_and_resize_logo(right_logo, frame_width, frame_height, scale_factor)
@@ -114,10 +116,12 @@ def overlay_logos(background: str, left_logo: str, right_logo: str, output_path:
     if os.path.exists(output_path):
         os.remove(output_path)
 
-    output = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), 30, (frame_width, frame_height))
-    process_video(background, logo1, logo1_width, logo1_height, logo2, logo2_width, logo2_height, output, frame_width,
+    writer = imageio.get_writer(output_path, fps=fps)
+
+    process_video(background, logo1, logo1_width, logo1_height, logo2, logo2_width, logo2_height, writer, frame_width,
                   frame_height)
-    output.release()
+
+    writer.close()
 
     logging.info(f"Video processing complete. Output saved as '{output_path}'")
 
