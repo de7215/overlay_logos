@@ -7,8 +7,8 @@ import cv2
 import imageio
 
 
-def load_and_resize_logo(logo_path: str, frame_width: int, frame_height: int, scale_factor: int) -> Tuple[
-    cv2.Mat, int, int]:
+def load_and_resize_logo(logo_path: str, frame_width: int,
+                         frame_height: int, scale_factor: int) -> Tuple[cv2.Mat, int, int]:
     """
     Load and resize a logo image.
 
@@ -68,13 +68,23 @@ def process_video(video_path: str, logo1: cv2.Mat, logo1_width: int, logo1_heigh
         if not ret:
             break
 
-        overlay_x1 = frame_width // 4 - logo1_width // 2
-        overlay_y1 = frame_height // 2 - logo1_height // 2
-        frame[overlay_y1:overlay_y1 + logo1_height, overlay_x1:overlay_x1 + logo1_width] = logo1
+        for (logo, logo_width, logo_height, overlay_x, overlay_y) in [(logo1, logo1_width, logo1_height,
+                                                                       frame_width // 4 - logo1_width // 2,
+                                                                       frame_height // 2 - logo1_height // 2),
+                                                                      (logo2, logo2_width, logo2_height,
+                                                                       frame_width * 3 // 4 - logo2_width // 2,
+                                                                       frame_height // 2 - logo2_height // 2)]:
+            if logo.shape[2] == 4:  # Logo image has an alpha channel
+                alpha_s = logo[:, :, 3] / 255.0
+                alpha_l = 1.0 - alpha_s
 
-        overlay_x2 = frame_width * 3 // 4 - logo2_width // 2
-        overlay_y2 = frame_height // 2 - logo2_height // 2
-        frame[overlay_y2:overlay_y2 + logo2_height, overlay_x2:overlay_x2 + logo2_width] = logo2
+                for c in range(0, 3):
+                    frame[overlay_y:overlay_y + logo_height, overlay_x:overlay_x + logo_width, c] = \
+                        (alpha_s * logo[:, :, c] + alpha_l * frame[overlay_y:overlay_y + logo_height,
+                                                             overlay_x:overlay_x + logo_width, c])
+
+            else:  # Logo image does not have an alpha channel
+                frame[overlay_y:overlay_y + logo_height, overlay_x:overlay_x + logo_width] = logo
 
         writer.append_data(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))  # Convert frame to RGB before writing
 
